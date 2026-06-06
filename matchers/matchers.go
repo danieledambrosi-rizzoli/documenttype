@@ -39,5 +39,5 @@ func registerMap(matchers ...Map) {
 }
 
 func init() {
-	registerMap()
+	registerMap(Documents)
 }

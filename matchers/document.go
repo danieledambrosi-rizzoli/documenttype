@@ -1,7 +1,8 @@
 package matchers
 
-import(
+import (
 	"encoding/binary"
+
 	"github.com/danieledambrosi-rizzoli/documenttype/types"
 )
 
@@ -14,7 +15,7 @@ var (
 	TypeOdt  = registerType("ODT", "odt", buildMime("application/vnd.oasis.opendocument.text"))
 )
 
-var OpenDocument = Map{
+var Documents = Map{
 	TypeDoc:  Doc,
 	TypeDocx: Docx,
 	TypeOdt:  Odt,
@@ -34,14 +35,22 @@ func Doc(magic []byte) bool {
 
 func Docx(magic []byte) bool {
 	const HEAD_SIZE = 0x1E
-	next := func(head []byte, headerStart int) int {
-		if headerStart + 0x1E > len(head) { return -1 }
-		if !bytescmp(magic, zipMagic[:], 0) { return -1 }
-		return HEAD_SIZE +
-			headerStart +
-			int(binary.LittleEndian.Uint16(head[headerStart+26 : headerStart+28])) +
-			int(binary.LittleEndian.Uint16(head[headerStart+28 : headerStart+30])) +
-			int(binary.LittleEndian.Uint32(head[headerStart+18 : headerStart+22]))
+	walk := func(headerStart *int) {
+		var head = []byte(magic)
+		if *headerStart < 0 || *headerStart + HEAD_SIZE > len(head) {
+			*headerStart = -1
+			return
+		}
+
+		if !bytescmp(head, zipMagic[:], *headerStart) {
+			*headerStart = -1
+			return
+		}
+
+		*headerStart += HEAD_SIZE +
+			int(binary.LittleEndian.Uint16(head[*headerStart+26:*headerStart+28])) +
+			int(binary.LittleEndian.Uint16(head[*headerStart+28:*headerStart+30])) +
+			int(binary.LittleEndian.Uint32(head[*headerStart+18:*headerStart+22]))
 	}
 
 	if !bytescmp(magic, zipMagic[:], 0) {
@@ -59,8 +68,17 @@ func Docx(magic []byte) bool {
 		return false
 	}
 
-	currentHead := 0
-	if currentHead = next(magic, currentHead); currentHead < 0 { return false }
+	headStart := 0
+	walk(&headStart)
+	if headStart < 0 { return false }
+	walk(&headStart)
+	if headStart < 0 { return false }
+
+	if bytescmp(magic, []byte("word/"), headStart+HEAD_SIZE) { return true }
+
+	walk(&headStart)
+	if headStart < 0 { return false }
+	if bytescmp(magic, []byte("word/"), headStart+HEAD_SIZE) { return true }
 
 	return false
 }

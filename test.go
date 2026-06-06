@@ -2,12 +2,28 @@ package main
 
 import(
 	"fmt"
+	"os"
 
 	"github.com/danieledambrosi-rizzoli/documenttype/types"
 	"github.com/danieledambrosi-rizzoli/documenttype/matchers"
 )
 
 func main() {
+	file, err := os.Open("samples/sample.docx")
+	if err != nil { return }
+	defer file.Close()
+
+	buffer := make([]byte, 8192)
+	file.Read(buffer)
+
+	typeDocx := matchers.TypeDocx
+	if matchers.Documents[typeDocx](buffer) {
+		fmt.Println("This is a Docx")
+		fmt.Println(typeDocx.Ext, typeDocx.Mime.Value())
+	} else {
+		fmt.Println("This isn't a Docx")
+	}
+
 	typePng := types.RegisterType("PNG", "png", types.BuildMIME("image/png"))
 	matchPng := matchers.RegisterMatcher(
 		typePng,
