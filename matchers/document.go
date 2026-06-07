@@ -2,6 +2,7 @@ package matchers
 
 import (
 	"encoding/binary"
+	"unsafe"
 
 	"github.com/danieledambrosi-rizzoli/documenttype/types"
 )
@@ -21,6 +22,7 @@ var Documents = Map{
 	TypeOdt:  Odt,
 }
 
+// this method is the exact copy of https://github.com/h2non/filetype/blob/master/matchers/document.go
 func Doc(magic []byte) bool {
 	if len(magic) > 513 {
 		return magic[0] == 0xD0 && magic[1] == 0xCF &&
@@ -33,6 +35,7 @@ func Doc(magic []byte) bool {
 	}
 }
 
+// i did this myself :)
 func Docx(magic []byte) bool {
 	const HEAD_SIZE = 0x1E
 	walk := func(headerStart *int) {
@@ -53,13 +56,9 @@ func Docx(magic []byte) bool {
 			int(binary.LittleEndian.Uint32(head[*headerStart+18:*headerStart+22]))
 	}
 
-	if !bytescmp(magic, zipMagic[:], 0) {
-		return false
-	}
+	if !bytescmp(magic, zipMagic[:], 0) { return false }
 
-	if bytescmp(magic, []byte("word/"), HEAD_SIZE) {
-		return true
-	}
+	if bytescmp(magic, []byte("word/"), HEAD_SIZE) { return true }
 
 	if !bytescmp(magic, []byte("[Content_Types].xml"), HEAD_SIZE) &&
 		!bytescmp(magic, []byte("_rels/.rels"), HEAD_SIZE) &&
@@ -84,5 +83,31 @@ func Docx(magic []byte) bool {
 }
 
 func Odt(magic []byte) bool {
-	return false
+	return checkOdf(magic, TypeOdt.Mime.Value())
+}
+
+// this method is ALMOST the exact copy of https://github.com/h2non/filetype/blob/master/matchers/document.go
+func checkOdf(magic []byte, mimetype string) bool {
+	if 38+len(mimetype) >= len(magic) {
+		return false
+	}
+
+	if !bytescmp(magic, zipMagic[:], 0) { return false }
+
+	if magic[8] != 0 || magic[9] != 0 { return false }
+
+	if magic[26] != 8 || magic[27] != 0 { return false }
+
+	if int(magic[18]) != len(mimetype) ||
+		magic[19] != 0 || magic[20] != 0 || magic[21] != 0 ||
+		int(magic[22]) != len(mimetype) ||
+		magic[23] != 0 || magic[24] != 0 || magic[25] != 0 {
+		return false
+	}
+
+	if magic[28] != 0 || magic[29] != 0 { return false }
+
+	// Optimised the code a little to avoid string conversion and allocation
+	return bytescmp(magic, []byte("mimetype"), 30) &&
+		bytescmp(magic, unsafe.Slice(unsafe.StringData(mimetype), len(mimetype)), 38)
 }
