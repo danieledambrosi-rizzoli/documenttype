@@ -5,8 +5,8 @@ import (
 )
 
 type MIME struct {
-	Type 	string
-	Subtype string
+	Type 	 string
+	Subtype  string
 }
 
 func BuildMIME(mime string) MIME {

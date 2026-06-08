@@ -1,25 +1,32 @@
+/*
+
+	WHAT SHOULD I PROVIDE
+	- PDF
+	- DOC
+	- DOCX
+	- ODT
+
+*/
+
 package matchers
 
 import (
 	"encoding/binary"
 	"unsafe"
-
-	"github.com/danieledambrosi-rizzoli/documenttype/types"
 )
-
-var registerType = types.RegisterType
-var buildMime = types.BuildMIME
 
 var (
 	TypeDoc  = registerType("DOC", "doc", buildMime("application/msword"))
 	TypeDocx = registerType("DOCX", "docx", buildMime("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
 	TypeOdt  = registerType("ODT", "odt", buildMime("application/vnd.oasis.opendocument.text"))
+	TypePdf  = registerType("PDF", "pdf", buildMime("application/pdf"))
 )
 
-var Documents = Map{
+var Documents = Map {
 	TypeDoc:  Doc,
 	TypeDocx: Docx,
 	TypeOdt:  Odt,
+	TypePdf:  Pdf,
 }
 
 // this method is the exact copy of https://github.com/h2non/filetype/blob/master/matchers/document.go
@@ -80,6 +87,14 @@ func Docx(magic []byte) bool {
 	if bytescmp(magic, []byte("word/"), headStart+HEAD_SIZE) { return true }
 
 	return false
+}
+
+func Pdf(magic []byte) bool {
+	// bytes(25 50 44 46 2D) ascii(%PDF-)
+	return len(magic) >= 5 &&
+	magic[0] == 0x25 && magic[1] == 0x50 &&
+	magic[2] == 0x44 && magic[3] == 0x46 &&
+	magic[4] == 0x2D
 }
 
 func Odt(magic []byte) bool {
