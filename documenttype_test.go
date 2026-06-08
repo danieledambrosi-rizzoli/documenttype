@@ -3,23 +3,20 @@ package documenttype
 import(
 	"os"
 	"testing"
+	"errors"
 )
 
-func TestDocx(t *testing.T) {
-	cases := []struct{
-		path string
-		ext  string
-		match  bool
-	}{
-		{"samples/sample.docx", "docx", true},
-		{"samples/sample2.docx", "docx", true},
-		{"samples/sample.odt", "docx", false},
-	}
+type Cases struct {
+	path string
+	ext  string		
+	match  bool
+}
 
+func testCases(cases []Cases) (bool, error) {
 	for _, c := range cases {
 		f, err := os.Open(c.path)
 		if err != nil {
-			t.Fatalf("The file doesn't exist")
+			return false, errors.New("The file doesn't exist")
 		}
 		defer f.Close()
 
@@ -30,7 +27,35 @@ func TestDocx(t *testing.T) {
 		res := typ.Ext == c.ext
 
 		if res != c.match {
-			t.Fatalf("Invalid match %s", c.path)
+			return false, errors.New("Invalid match " + c.path)
 		}
+	}
+
+	return true, nil
+}
+
+func TestDocx(t *testing.T) {
+	cases := []Cases {
+		{"samples/sample.docx", "docx", true},
+		{"samples/sample2.docx", "docx", true},
+		{"samples/sample.odt", "docx", false},
+	}
+
+	ok, err := testCases(cases)
+	if err != nil || !ok {
+		t.Fatal(err.Error())
+	}
+}
+
+func TestOdt(t *testing.T) {
+	cases := []Cases {
+		{"samples/sample.docx", "odt", false},
+		{"samples/sample2.docx", "odt", false},
+		{"samples/sample.odt", "odt", true},
+	}
+
+	ok, err := testCases(cases)
+	if err != nil || !ok {
+		t.Fatal(err.Error())
 	}
 }
