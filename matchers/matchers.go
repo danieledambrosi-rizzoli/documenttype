@@ -10,13 +10,13 @@ type TypeMatcher func([]byte)types.Type
 type Map map[types.Type]Matcher
 
 var (
-	matchers = make(map[types.Type]TypeMatcher)
+	Matchers = make(map[types.Type]TypeMatcher)
 	// supportedTypes []types.Type
 )
 
 func RegisterMatcher(t types.Type, fn Matcher) TypeMatcher {
-	if _, exists := matchers[t]; exists {
-		return matchers[t]
+	if _, exists := Matchers[t]; exists {
+		return Matchers[t]
 	}
 	matcher := func(magic []byte) types.Type {
 		if fn(magic) {
@@ -25,7 +25,7 @@ func RegisterMatcher(t types.Type, fn Matcher) TypeMatcher {
 		return types.Unknown
 	}
 
-	matchers[t] = matcher
+	Matchers[t] = matcher
 	// supportedTypes = append([]types.Type{t}, supportedTypes...)
 	return matcher
 }
