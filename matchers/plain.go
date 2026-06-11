@@ -2,7 +2,7 @@
 
 	HEURISTIC PLAINTEXT DETECTION
 	inspired by https://github.com/profullstack/text-type-detection/blob/master/src/index.js
-	
+
 	WHAT SHOULD I PROVIDE
 	- isAscii detection
 	- isUtf8 detection
@@ -17,7 +17,7 @@
 
 package matchers
 
-import(
+import (
 	// "github.com/danieledambrosi-rizzoli/documenttype/types"
 	// "github.com/danieledambrosi-rizzoli/documenttype/matchers"
 )
@@ -34,14 +34,14 @@ const (
 )
 
 var (
-	TypeLatex  = registerType("LATEX", "latex", buildMime("application/x-latex"))
-	TypeHtml = registerType("HTML", "html", buildMime("text/html"))
+	TypeLatex = registerType("LATEX", "latex", buildMime("application/x-latex"))
+	TypeHtml  = registerType("HTML", "html", buildMime("text/html"))
 	TypeXhtml = registerType("XHTML", "xhtml", buildMime("application/xhtml+xml"))
-	TypeTxt = registerType("TXT", "txt", buildMime("text/plain"))
-	TypeMd = registerType("MD", "md", buildMime("text/markdown"))
+	TypeTxt   = registerType("TXT", "txt", buildMime("text/plain"))
+	TypeMd    = registerType("MD", "md", buildMime("text/markdown"))
 )
 
-var Plains = Map {
+var PlainTextFiles = Map{
 	TypeLatex: Latex,
 	TypeHtml:  Html,
 	TypeXhtml: Xhtml,
@@ -51,18 +51,25 @@ var Plains = Map {
 
 func bytesFromBOM(bom bomEncoding) int {
 	switch bom {
-	case UTF8: return 3
-	case UTF16_BE, UTF16_LE: return 2
-	case UTF32_BE, UTF32_LE: return 4
-	case UNKNOWN: return 0
-	default: return 0
+	case UTF8:
+		return 3
+	case UTF16_BE, UTF16_LE:
+		return 2
+	case UTF32_BE, UTF32_LE:
+		return 4
+	case UNKNOWN:
+		return 0
+	default:
+		return 0
 	}
 }
 
 // https://github.com/simdutf/simdutf/blob/master/src/encoding_types.cpp
 func checkBOM(magic []byte) bomEncoding {
 	length := len(magic)
-	if length < 3 { return UNKNOWN }
+	if length < 3 {
+		return UNKNOWN
+	}
 	if length >= 2 && magic[0] == 0xff && magic[1] == 0xfe {
 		if length >= 4 && magic[2] == 0x00 && magic[3] == 0x0 {
 			return UTF32_LE
@@ -72,21 +79,73 @@ func checkBOM(magic []byte) bomEncoding {
 	} else if length >= 2 && magic[0] == 0xfe && magic[1] == 0xff {
 		return UTF16_BE
 	} else if length >= 4 && magic[0] == 0x00 && magic[1] == 0x00 &&
-				magic[2] == 0xfe && magic[3] == 0xff {
+		magic[2] == 0xfe && magic[3] == 0xff {
 		return UTF32_BE
 	} else if length >= 3 && magic[0] == 0xef && magic[1] == 0xbb &&
-				magic[2] == 0xbf {
+		magic[2] == 0xbf {
 		return UTF8
 	}
 	return UNKNOWN
 }
 
-// if it isnt a valid utf8 we dont bother parsing the file
-// if utf8 => ascii
-// if ascii ? utf8
-func IsUtf8(magic []byte) bool {
-	
-	return false
+func IsAscii(buf []byte) bool {
+	var idx uint
+	for idx+8 <= uint(len(buf)) {
+		data := leBytes(buf[idx : idx+8 : idx+8])
+		if data&m80 != 0 {
+			return false
+		}
+		idx += 8
+	}
+	var data uint64
+	if len(buf) >= 8 {
+		shft := 64 - uint(len(buf))%8*8
+		data = leBytes(buf[len(buf)-8:len(buf):len(buf)]) >> shft
+	} else {
+		var shft uint
+		for idx < uint(len(buf)) {
+			data |= uint64(buf[idx]) << shft
+			shft += 8
+			idx++
+		}
+	}
+	return data&m80==0
+}
+
+// implementation from https://github.com/sugawarayuuta/charcoal
+func IsUtf8(buf []byte) bool {
+	if checkBOM(buf) == UTF8 { return true }
+
+	s64 := state64{xe0: m80, xed: m80, xf0: m80}
+	var idx uint
+	for idx+8 <= uint(len(buf)) {
+		data := leBytes(buf[idx : idx+8 : idx+8])
+		if data&m80 != 0 {
+			break
+		}
+		idx += 8
+	}
+	for idx+8 <= uint(len(buf)) {
+		data := leBytes(buf[idx : idx+8 : idx+8])
+		if !s64.add(data) {
+			return false
+		}
+		// in theory if data is only ascii, we could go back to fast checking...
+		idx += 8
+	}
+	var data uint64
+	if len(buf) >= 8 {
+		shft := 64 - uint(len(buf))%8*8
+		data = leBytes(buf[len(buf)-8:len(buf):len(buf)]) >> shft
+	} else {
+		var shft uint
+		for idx < uint(len(buf)) {
+			data |= uint64(buf[idx]) << shft
+			shft += 8
+			idx++
+		}
+	}
+	return (data&m80 == 0 || s64.add(data)) && s64.top&m80 == 0
 }
 
 func Latex(magic []byte) bool {
@@ -94,7 +153,7 @@ func Latex(magic []byte) bool {
 }
 
 func Text(magic []byte) bool {
-	return false
+	return IsUtf8(magic)
 }
 
 func Html(magic []byte) bool {
