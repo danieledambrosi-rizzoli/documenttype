@@ -67,7 +67,7 @@ func bytesFromBOM(bom bomEncoding) int {
 // https://github.com/simdutf/simdutf/blob/master/src/encoding_types.cpp
 func checkBOM(magic []byte) bomEncoding {
 	length := len(magic)
-	if length < 3 {
+	if length < 2 {
 		return UNKNOWN
 	}
 	if length >= 2 && magic[0] == 0xff && magic[1] == 0xfe {
@@ -114,8 +114,6 @@ func IsAscii(buf []byte) bool {
 
 // implementation from https://github.com/sugawarayuuta/charcoal
 func IsUtf8(buf []byte) bool {
-	if checkBOM(buf) == UTF8 { return true }
-
 	s64 := state64{xe0: m80, xed: m80, xf0: m80}
 	var idx uint
 	for idx+8 <= uint(len(buf)) {
@@ -153,7 +151,7 @@ func Latex(magic []byte) bool {
 }
 
 func Text(magic []byte) bool {
-	return IsUtf8(magic)
+	return checkBOM(magic) != UNKNOWN || IsUtf8(magic)
 }
 
 func Html(magic []byte) bool {

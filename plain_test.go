@@ -5,6 +5,11 @@ import(
 	"errors"
 	"fmt"
 
+	"bufio"
+	"sync"
+	"os"
+	"unicode/utf8"
+
 	"github.com/danieledambrosi-rizzoli/documenttype/matchers"
 )
 
@@ -54,4 +59,84 @@ func TestIsUtf8(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatal(err.Error())
 	}
+}
+
+func testCasesBuffered(cases []Cases) (bool, error) {
+	var bufferPool = sync.Pool{
+		New: func() interface{} {
+			return make([]byte, 0, 6192)
+		},
+	}
+
+	buf := bufferPool.Get().([]byte)[:0]
+	for _, c := range cases {
+		f, err := os.Open(c.path)
+		if err != nil {
+			return false, errors.New("The file doesn't exist")
+		}
+		defer f.Close()
+
+
+		br := bufio.NewReader(f)
+		n, err := br.Read(buf[:cap(buf)])
+		if err != nil {
+			return false, errors.New("Could not read the file")
+		}
+
+		typ := GetType(buf[:n])
+		res := typ.Ext == c.ext
+		if res != c.match {
+			return false, errors.New("Invalid match " + c.path)
+		}
+	}
+
+	return true, nil
+}
+
+func TestText(t *testing.T) {
+	cases := []Cases{
+		{"samples/darwin.txt", "txt", true},
+		{"samples/divina_commedia.txt", "txt", true},
+		{"samples/frankestein.txt", "txt", true},
+		{"samples/symposium.txt", "txt", true},
+	}
+
+	ok, err := testCasesBuffered(cases)
+	if err != nil || !ok {
+		t.Fatal(err.Error())
+	}
+}
+
+func BenchmarkTextRecognition(b *testing.B) {
+	cases := []Cases{
+		{"samples/darwin.txt", "txt", true},
+		{"samples/divina_commedia.txt", "txt", true},
+		{"samples/frankestein.txt", "txt", true},
+		{"samples/symposium.txt", "txt", true},
+	}
+
+	b.Run("mine", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ok, err := testCasesBuffered(cases)
+			if err != nil || !ok {
+				b.Fatal(err.Error())
+			}
+		}
+	})
+	b.Run("std", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for _, c := range cases {
+				buffer, err := os.ReadFile(c.path)
+				if err != nil {
+					b.Fatal(err.Error())
+				}
+
+				res := utf8.Valid(buffer)
+
+				if res != c.match {
+					b.Fatal("Invalid match " + c.path)
+				}
+			}
+		}
+	})
 }
