@@ -65,24 +65,24 @@ func bytesFromBOM(bom bomEncoding) int {
 }
 
 // https://github.com/simdutf/simdutf/blob/master/src/encoding_types.cpp
-func checkBOM(magic []byte) bomEncoding {
-	length := len(magic)
+func checkBOM(mime []byte) bomEncoding {
+	length := len(mime)
 	if length < 2 {
 		return UNKNOWN
 	}
-	if length >= 2 && magic[0] == 0xff && magic[1] == 0xfe {
-		if length >= 4 && magic[2] == 0x00 && magic[3] == 0x0 {
+	if length >= 2 && mime[0] == 0xff && mime[1] == 0xfe {
+		if length >= 4 && mime[2] == 0x00 && mime[3] == 0x0 {
 			return UTF32_LE
 		} else {
 			return UTF16_LE
 		}
-	} else if length >= 2 && magic[0] == 0xfe && magic[1] == 0xff {
+	} else if length >= 2 && mime[0] == 0xfe && mime[1] == 0xff {
 		return UTF16_BE
-	} else if length >= 4 && magic[0] == 0x00 && magic[1] == 0x00 &&
-		magic[2] == 0xfe && magic[3] == 0xff {
+	} else if length >= 4 && mime[0] == 0x00 && mime[1] == 0x00 &&
+		mime[2] == 0xfe && mime[3] == 0xff {
 		return UTF32_BE
-	} else if length >= 3 && magic[0] == 0xef && magic[1] == 0xbb &&
-		magic[2] == 0xbf {
+	} else if length >= 3 && mime[0] == 0xef && mime[1] == 0xbb &&
+		mime[2] == 0xbf {
 		return UTF8
 	}
 	return UNKNOWN
@@ -146,22 +146,22 @@ func IsUtf8(buf []byte) bool {
 	return (data&m80 == 0 || s64.add(data)) && s64.top&m80 == 0
 }
 
-func Latex(magic []byte) bool {
+func Latex(mime []byte) bool {
 	return false
 }
 
-func Text(magic []byte) bool {
-	return checkBOM(magic) != UNKNOWN || IsUtf8(magic)
+func Text(mime []byte) bool {
+	return checkBOM(mime) != UNKNOWN || IsUtf8(mime)
 }
 
-func Html(magic []byte) bool {
+func Html(mime []byte) bool {
 	return false
 }
 
-func Xhtml(magic []byte) bool {
+func Xhtml(mime []byte) bool {
 	return false
 }
 
-func Md(magic []byte) bool {
+func Md(mime []byte) bool {
 	return false
 }

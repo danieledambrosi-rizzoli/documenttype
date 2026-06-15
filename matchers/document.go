@@ -22,7 +22,7 @@ var (
 	TypePdf  = registerType("PDF", "pdf", buildMime("application/pdf"))
 )
 
-var Documents = Map {
+var Documents = Map{
 	TypeDoc:  Doc,
 	TypeDocx: Docx,
 	TypeOdt:  Odt,
@@ -30,24 +30,24 @@ var Documents = Map {
 }
 
 // this method is the exact copy of https://github.com/h2non/filetype/blob/master/matchers/document.go
-func Doc(magic []byte) bool {
-	if len(magic) > 513 {
-		return magic[0] == 0xD0 && magic[1] == 0xCF &&
-			magic[2] == 0x11 && magic[3] == 0xE0 &&
-			magic[512] == 0xEC && magic[513] == 0xA5
+func Doc(mime []byte) bool {
+	if len(mime) > 513 {
+		return mime[0] == 0xD0 && mime[1] == 0xCF &&
+			mime[2] == 0x11 && mime[3] == 0xE0 &&
+			mime[512] == 0xEC && mime[513] == 0xA5
 	} else {
-		return len(magic) > 3 &&
-			magic[0] == 0xD0 && magic[1] == 0xCF &&
-			magic[2] == 0x11 && magic[3] == 0xE0
+		return len(mime) > 3 &&
+			mime[0] == 0xD0 && mime[1] == 0xCF &&
+			mime[2] == 0x11 && mime[3] == 0xE0
 	}
 }
 
 // i did this myself :)
-func Docx(magic []byte) bool {
+func Docx(mime []byte) bool {
 	const HEAD_SIZE = 0x1E
 	walk := func(headerStart *int) {
-		var head = []byte(magic)
-		if *headerStart < 0 || *headerStart + HEAD_SIZE > len(head) {
+		var head = []byte(mime)
+		if *headerStart < 0 || *headerStart+HEAD_SIZE > len(head) {
 			*headerStart = -1
 			return
 		}
@@ -63,66 +63,88 @@ func Docx(magic []byte) bool {
 			int(binary.LittleEndian.Uint32(head[*headerStart+18:*headerStart+22]))
 	}
 
-	if !bytescmp(magic, zipMagic[:], 0) { return false }
+	if !bytescmp(mime, zipMagic[:], 0) {
+		return false
+	}
 
-	if bytescmp(magic, []byte("word/"), HEAD_SIZE) { return true }
+	if bytescmp(mime, []byte("word/"), HEAD_SIZE) {
+		return true
+	}
 
-	if !bytescmp(magic, []byte("[Content_Types].xml"), HEAD_SIZE) &&
-		!bytescmp(magic, []byte("_rels/.rels"), HEAD_SIZE) &&
-		!bytescmp(magic, []byte("docProps"), HEAD_SIZE) &&
-		!bytescmp(magic, []byte("_rels"), HEAD_SIZE) {
+	if !bytescmp(mime, []byte("[Content_Types].xml"), HEAD_SIZE) &&
+		!bytescmp(mime, []byte("_rels/.rels"), HEAD_SIZE) &&
+		!bytescmp(mime, []byte("docProps"), HEAD_SIZE) &&
+		!bytescmp(mime, []byte("_rels"), HEAD_SIZE) {
 		return false
 	}
 
 	headStart := 0
 	walk(&headStart)
-	if headStart < 0 { return false }
+	if headStart < 0 {
+		return false
+	}
 	walk(&headStart)
-	if headStart < 0 { return false }
+	if headStart < 0 {
+		return false
+	}
 
-	if bytescmp(magic, []byte("word/"), headStart+HEAD_SIZE) { return true }
+	if bytescmp(mime, []byte("word/"), headStart+HEAD_SIZE) {
+		return true
+	}
 
 	walk(&headStart)
-	if headStart < 0 { return false }
-	if bytescmp(magic, []byte("word/"), headStart+HEAD_SIZE) { return true }
+	if headStart < 0 {
+		return false
+	}
+	if bytescmp(mime, []byte("word/"), headStart+HEAD_SIZE) {
+		return true
+	}
 
 	return false
 }
 
-func Pdf(magic []byte) bool {
+func Pdf(mime []byte) bool {
 	// bytes(25 50 44 46 2D) ascii(%PDF-)
-	return len(magic) >= 5 &&
-	magic[0] == 0x25 && magic[1] == 0x50 &&
-	magic[2] == 0x44 && magic[3] == 0x46 &&
-	magic[4] == 0x2D
+	return len(mime) >= 5 &&
+		mime[0] == 0x25 && mime[1] == 0x50 &&
+		mime[2] == 0x44 && mime[3] == 0x46 &&
+		mime[4] == 0x2D
 }
 
-func Odt(magic []byte) bool {
-	return checkOdf(magic, TypeOdt.Mime.Value())
+func Odt(mime []byte) bool {
+	return checkOdf(mime, TypeOdt.Mime.Value())
 }
 
 // this method is ALMOST the exact copy of https://github.com/h2non/filetype/blob/master/matchers/document.go
-func checkOdf(magic []byte, mimetype string) bool {
-	if 38+len(mimetype) >= len(magic) {
+func checkOdf(mime []byte, mimetype string) bool {
+	if 38+len(mimetype) >= len(mime) {
 		return false
 	}
 
-	if !bytescmp(magic, zipMagic[:], 0) { return false }
-
-	if magic[8] != 0 || magic[9] != 0 { return false }
-
-	if magic[26] != 8 || magic[27] != 0 { return false }
-
-	if int(magic[18]) != len(mimetype) ||
-		magic[19] != 0 || magic[20] != 0 || magic[21] != 0 ||
-		int(magic[22]) != len(mimetype) ||
-		magic[23] != 0 || magic[24] != 0 || magic[25] != 0 {
+	if !bytescmp(mime, zipMagic[:], 0) {
 		return false
 	}
 
-	if magic[28] != 0 || magic[29] != 0 { return false }
+	if mime[8] != 0 || mime[9] != 0 {
+		return false
+	}
+
+	if mime[26] != 8 || mime[27] != 0 {
+		return false
+	}
+
+	if int(mime[18]) != len(mimetype) ||
+		mime[19] != 0 || mime[20] != 0 || mime[21] != 0 ||
+		int(mime[22]) != len(mimetype) ||
+		mime[23] != 0 || mime[24] != 0 || mime[25] != 0 {
+		return false
+	}
+
+	if mime[28] != 0 || mime[29] != 0 {
+		return false
+	}
 
 	// Optimised the code a little to avoid string conversion and allocation
-	return bytescmp(magic, []byte("mimetype"), 30) &&
-		bytescmp(magic, unsafe.Slice(unsafe.StringData(mimetype), len(mimetype)), 38)
+	return bytescmp(mime, []byte("mimetype"), 30) &&
+		bytescmp(mime, unsafe.Slice(unsafe.StringData(mimetype), len(mimetype)), 38)
 }

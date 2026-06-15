@@ -18,8 +18,8 @@ func RegisterMatcher(t types.Type, fn Matcher) TypeMatcher {
 	if _, exists := Matchers[t]; exists {
 		return Matchers[t]
 	}
-	matcher := func(magic []byte) types.Type {
-		if fn(magic) {
+	matcher := func(mime []byte) types.Type {
+		if fn(mime) {
 			return t
 		}
 		return types.Unknown

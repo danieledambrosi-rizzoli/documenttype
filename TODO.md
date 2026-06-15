@@ -1,5 +1,5 @@
 4. also implement the file parsers (in another package)
-5. implement the buffered reader used in benchmark tests in the API.
+5. imeplement a buffered reader using Async and stateful matching for large files that don't fit in RAM
 6. refactor the tests.
 
 ---
