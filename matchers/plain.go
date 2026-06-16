@@ -8,6 +8,7 @@
 	- isUtf8 detection
 	|_check the BOM
 
+	// maybe later
 	- HTML
 	- MD
 	- TXT

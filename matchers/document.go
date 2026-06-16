@@ -1,13 +1,3 @@
-/*
-
-	WHAT SHOULD I PROVIDE
-	- PDF
-	- DOC
-	- DOCX
-	- ODT
-
-*/
-
 package matchers
 
 import (

@@ -11,14 +11,15 @@ type Type struct {
 
 var (
 	nextID TypeID = 0
-	types = make(map[TypeID]Type)
-	names = make(map[string]TypeID)
+	Types = make(map[TypeID]Type)
+	Names = make(map[string]TypeID)
 	Unknown Type
 )
 
 func RegisterType(name string, ext string, mime MIME) Type {
-	if _, exists := names[name]; exists { // prevents the creation of multiple Types with the same name (may implement retrieving by name if necessary)
-		return types[names[name]]
+	// prevents the creation of multiple Types with the same name (may implement retrieving by name if necessary)
+	if _, exists := Names[name]; exists {
+		return Types[Names[name]]
 	}
 	id := nextID
 	nextID++
@@ -30,8 +31,8 @@ func RegisterType(name string, ext string, mime MIME) Type {
 		Mime: mime,
 	}
 
-	types[id] = t
-	names[name] = id
+	Types[id] = t
+	Names[name] = id
 	return t
 }
 

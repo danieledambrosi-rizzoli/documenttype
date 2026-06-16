@@ -11,7 +11,7 @@ type Map map[types.Type]Matcher
 
 var (
 	Matchers = make(map[types.Type]TypeMatcher)
-	// supportedTypes []types.Type
+	SupportedTypes []TypeMatcher
 )
 
 func RegisterMatcher(t types.Type, fn Matcher) TypeMatcher {
@@ -26,7 +26,7 @@ func RegisterMatcher(t types.Type, fn Matcher) TypeMatcher {
 	}
 
 	Matchers[t] = matcher
-	// supportedTypes = append([]types.Type{t}, supportedTypes...)
+	SupportedTypes = append([]TypeMatcher{matcher}, SupportedTypes...)
 	return matcher
 }
 
@@ -39,5 +39,6 @@ func registerMap(matchers ...Map) {
 }
 
 func init() {
-	registerMap(Documents, PlainTextFiles)
+	// we put PlainTextFiles to the bottom of the queue to optimize
+	registerMap(PlainTextFiles, Documents)
 }
