@@ -5,11 +5,17 @@ import(
 	"github.com/danieledambrosi-rizzoli/documenttype/matchers"
 )
 
-var SupportedTypes = matchers.SupportedTypes
+var supportedTypes = matchers.SupportedTypes
 var Matchers = matchers.Matchers
 
+var TypeDoc  = matchers.TypeDoc
+var TypeDocx = matchers.TypeDocx
+var TypeOdt  = matchers.TypeOdt
+var TypePdf  = matchers.TypePdf
+var TypeTxt  = matchers.TypeTxt
+
 func GetType(buf []byte) types.Type {
-	for _, matcher := range SupportedTypes {
+	for _, matcher := range supportedTypes {
 		var t = matcher(buf)
 		if  t != types.Unknown {
 			return t
